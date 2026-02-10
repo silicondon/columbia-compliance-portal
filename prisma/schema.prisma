@@ -44,6 +44,13 @@ model Vendor {
 
   // Brokermatic sync
   brokermaticInsuredId String?   @unique
+  brokerEmail          String?
+  brokerName           String?
+
+  // Insurance status tracking
+  insuranceStatus      String?   // "pending" | "requested" | "compliant" | "non_compliant" | "expiring_soon" | "expired"
+  insuranceRequestedAt DateTime?
+  insuranceComplianceAt DateTime?
 
   // Audit
   arcVendorId          String?
@@ -52,6 +59,7 @@ model Vendor {
 
   // Relations
   certificates         Certificate[]
+  certificateRequests  CertificateRequest[]
   contracts            Contract[]
   rates                VendorRate[]
   insuranceRequirement InsuranceRequirement?
@@ -185,4 +193,37 @@ model UnionRateSheet {
 
   @@index([trade])
   @@index([effectiveDate])
+}
+
+// Brokermatic Smart COI API Integration
+model CertificateRequest {
+  id                    String    @id @default(cuid())
+  vendorId              String
+  vendor                Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  // Brokermatic tracking
+  brokermaticRequestId  String?   // "REQ-20260209-A7F3"
+  externalId            String    @unique // Our internal tracking ID (e.g., "COLUMBIA-VENDOR-123")
+  status                String    // "pending" | "fulfilled" | "compliant" | "non_compliant"
+
+  // Requirements submitted to Brokermatic
+  legalText             String    @db.Text
+  coverageTypes         Json      // ["general_liability", "workers_comp", "auto"]
+  minimumLimits         Json?     // {general_liability: {perOccurrence: 2000000, aggregate: 4000000}}
+
+  // Compliance tracking
+  uploadedAt            DateTime?
+  validatedAt           DateTime?
+  complianceResult      Json?     // Full compliance check result from Brokermatic
+
+  // Certificate storage
+  certificateUrl        String?   // Local copy in Columbia system
+  certificatePdfKey     String?   // S3 key for local storage
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([externalId])
 }
