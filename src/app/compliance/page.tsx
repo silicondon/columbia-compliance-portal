@@ -20,6 +20,9 @@ import TextField from "@mui/material/TextField";
 import Avatar from "@mui/material/Avatar";
 import FilterableTableHeaderCell from "@/components/FilterableTableHeaderCell";
 import { columbia } from "@/lib/colors";
+import ComplianceFilters from "@/components/ComplianceFilters";
+import ComplianceBulkActions from "@/components/ComplianceBulkActions";
+import ExportComplianceButton from "@/components/ExportComplianceButton";
 
 export const dynamic = "force-dynamic";
 
@@ -184,6 +187,7 @@ export default async function ComplianceDashboard({
   const vendorSearch = typeof params.search === "string" ? params.search.trim() : "";
   const coverageTypeFilter = typeof params.coverageType === "string" ? params.coverageType.trim() : "";
   const complianceStatusFilter = typeof params.complianceStatus === "string" ? params.complianceStatus : "";
+  const insuranceStatusFilter = typeof params.insuranceStatus === "string" ? params.insuranceStatus : "";
   const sort = typeof params.sort === "string" ? params.sort : "";
   const order = typeof params.order === "string" && (params.order === "asc" || params.order === "desc")
     ? params.order
@@ -215,6 +219,10 @@ export default async function ComplianceDashboard({
 
   if (complianceStatusFilter) {
     filters.push({ complianceStatus: complianceStatusFilter });
+  }
+
+  if (insuranceStatusFilter) {
+    filters.push({ vendor: { insuranceStatus: insuranceStatusFilter } });
   }
 
   // Combine base flagged condition with filters
@@ -381,29 +389,35 @@ export default async function ComplianceDashboard({
               Monitor vendor compliance and certificate status
             </Typography>
           </Box>
-          <Link href="/compliance/expiring" style={{ textDecoration: "none" }}>
-            <Button
-              variant="contained"
-              sx={{
-                backgroundColor: columbia.navyBlue,
-                color: "#fff",
-                textTransform: "none",
-                fontWeight: 500,
-                fontSize: "0.9375rem",
-                borderRadius: "8px",
-                px: 3,
-                py: 1.5,
-                boxShadow: "0 2px 6px 0 rgba(0, 48, 135, 0.3)",
-                "&:hover": {
-                  backgroundColor: columbia.mediumBlue,
-                  boxShadow: "0 4px 8px 0 rgba(0, 48, 135, 0.4)",
-                },
-              }}
-            >
-              View Expiring Certificates
-            </Button>
-          </Link>
+          <Stack direction="row" spacing={2}>
+            <ExportComplianceButton certificates={flaggedCerts} />
+            <Link href="/compliance/expiring" style={{ textDecoration: "none" }}>
+              <Button
+                variant="contained"
+                sx={{
+                  backgroundColor: columbia.navyBlue,
+                  color: "#fff",
+                  textTransform: "none",
+                  fontWeight: 500,
+                  fontSize: "0.9375rem",
+                  borderRadius: "8px",
+                  px: 3,
+                  py: 1.5,
+                  boxShadow: "0 2px 6px 0 rgba(0, 48, 135, 0.3)",
+                  "&:hover": {
+                    backgroundColor: columbia.mediumBlue,
+                    boxShadow: "0 4px 8px 0 rgba(0, 48, 135, 0.4)",
+                  },
+                }}
+              >
+                View Expiring Certificates
+              </Button>
+            </Link>
+          </Stack>
         </Stack>
+
+        {/* Filters */}
+        <ComplianceFilters />
 
         {/* Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 5 }}>
