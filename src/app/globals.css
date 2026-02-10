@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: "Proxima Nova", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+body {
+  background: #F7F8FA;
+}

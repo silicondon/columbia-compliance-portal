@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Vendor {
+  id                   String    @id @default(cuid())
+  vmsId                String    @unique
+  name                 String
+  dba                  String?
+  ein                  String?
+  address1             String?
+  address2             String?
+  city                 String?
+  state                String?
+  zip                  String?
+  phone                String?
+  fax                  String?
+  email                String?
+  emailMaximo          String?
+  emailUnifier         String?
+  contactPerson        String?
+
+  // Classification
+  primaryTrade         String?
+  unionStatus          String?
+  mwlStatus            String?
+
+  // Flags
+  maximoEnabled        Boolean   @default(false)
+  facilities           Boolean   @default(false)
+  construction         Boolean   @default(false)
+  paymentLien          Boolean   @default(false)
+  exemptFromInsurance  Boolean   @default(false)
+
+  // Status
+  status               String    @default("active")
+  suspendedDate        DateTime?
+  suspendedReason      String?
+
+  // Brokermatic sync
+  brokermaticInsuredId String?   @unique
+
+  // Audit
+  arcVendorId          String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  certificates         Certificate[]
+  contracts            Contract[]
+  rates                VendorRate[]
+  insuranceRequirement InsuranceRequirement?
+
+  @@index([name])
+  @@index([primaryTrade])
+  @@index([status])
+}
+
+model InsuranceRequirement {
+  id                       String   @id @default(cuid())
+  vendorId                 String   @unique
+  vendor                   Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  brokermaticReqId         String?
+
+  glRequired               Decimal? @db.Decimal(15, 2)
+  glAggregate              Decimal? @db.Decimal(15, 2)
+  glEachOccurrence         Decimal? @db.Decimal(15, 2)
+  excessRequired           Decimal? @db.Decimal(15, 2)
+  excessAggregate          Decimal? @db.Decimal(15, 2)
+  excessEachOccurrence     Decimal? @db.Decimal(15, 2)
+  autoRequired             Decimal? @db.Decimal(15, 2)
+  autoAggregate            Decimal? @db.Decimal(15, 2)
+  autoEachOccurrence       Decimal? @db.Decimal(15, 2)
+  envRequired              Decimal? @db.Decimal(15, 2)
+  envAggregate             Decimal? @db.Decimal(15, 2)
+  envEachOccurrence        Decimal? @db.Decimal(15, 2)
+  profRequired             Decimal? @db.Decimal(15, 2)
+  profAggregate            Decimal? @db.Decimal(15, 2)
+  profEachOccurrence       Decimal? @db.Decimal(15, 2)
+  workersCompRequired      Boolean  @default(false)
+
+  updatedAt                DateTime @updatedAt
+}
+
+model Certificate {
+  id                    String    @id @default(cuid())
+  vendorId              String
+  vendor                Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  brokermaticCertId     String?   @unique
+
+  coverageType          String
+  policyNumber          String?
+  carrierName           String?
+  requiredAmount        Decimal?  @db.Decimal(15, 2)
+  aggregateAmount       Decimal?  @db.Decimal(15, 2)
+  eachOccurrenceAmount  Decimal?  @db.Decimal(15, 2)
+  effectiveDate         DateTime?
+  expirationDate        DateTime?
+
+  complianceStatus      String    @default("pending")
+  lastCheckedAt         DateTime?
+
+  documentPath          String?
+  documentFilename      String?
+  documentSize          Int?
+  documentChecksum      String?
+
+  notifiedDate          DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([vendorId])
+  @@index([coverageType])
+  @@index([expirationDate])
+  @@index([complianceStatus])
+}
+
+model Contract {
+  id                String    @id @default(cuid())
+  vendorId          String
+  vendor            Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  contractType      String
+  title             String?
+  contractNumber    String?
+  signature         String?
+  beginDate         DateTime?
+  endDate           DateTime?
+  saContractValue   Decimal?  @db.Decimal(15, 2)
+  saContractLength  String?
+  notifiedDate      DateTime?
+  documentPath      String?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([vendorId])
+}
+
+model VendorRate {
+  id                String    @id @default(cuid())
+  vendorId          String
+  vendor            Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  status            String    @default("pending")
+  rateCategory      String
+  rateSubCategory   String?
+  regularHourly     Decimal?  @db.Decimal(10, 2)
+  premiumHourly     Decimal?  @db.Decimal(10, 2)
+  doubleHourly      Decimal?  @db.Decimal(10, 2)
+  materialMarkup    Decimal?  @db.Decimal(5, 2)
+  subMarkup         Decimal?  @db.Decimal(5, 2)
+  equipmentMarkup   Decimal?  @db.Decimal(5, 2)
+  effectiveDate     DateTime?
+  expirationDate    DateTime?
+  comments          String?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([vendorId])
+  @@index([rateCategory])
+}
+
+model UnionRateSheet {
+  id                String   @id @default(cuid())
+  trade             String
+  code              String?
+  unionName         String?
+  fund              String?
+  regularRate       Decimal? @db.Decimal(10, 2)
+  premiumRate       Decimal? @db.Decimal(10, 2)
+  doubleRate        Decimal? @db.Decimal(10, 2)
+  foremanRegular    Decimal? @db.Decimal(10, 2)
+  foremanPremium    Decimal? @db.Decimal(10, 2)
+  foremanDouble     Decimal? @db.Decimal(10, 2)
+  effectiveDate     DateTime
+
+  createdAt         DateTime @default(now())
+
+  @@index([trade])
+  @@index([effectiveDate])
+}
