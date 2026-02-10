@@ -21,8 +21,13 @@ import Divider from "@mui/material/Divider";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DownloadIcon from "@mui/icons-material/Download";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import VendorHeader from "@/components/VendorHeader";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import RequestInsuranceButton from "@/components/RequestInsuranceButton";
 
 export const dynamic = "force-dynamic";
 
@@ -154,6 +159,9 @@ export default async function VendorInsurancePage({
       insuranceRequirement: true,
       certificates: {
         orderBy: [{ coverageType: "asc" }, { expirationDate: "desc" }],
+      },
+      certificateRequests: {
+        orderBy: { createdAt: "desc" },
       },
       _count: {
         select: {
@@ -330,6 +338,399 @@ export default async function VendorInsurancePage({
           </Alert>
         )}
 
+        {/* ---- Insurance Request Status ---- */}
+        {!vendor.exemptFromInsurance && (
+          <Card
+            sx={{
+              mb: 4,
+              boxShadow: "0 2px 6px 0 rgba(0, 0, 0, 0.05)",
+              border: "1px solid rgba(0, 0, 0, 0.04)",
+            }}
+          >
+            <Box
+              sx={{
+                px: 4,
+                py: 3,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="h6"
+                  component="h2"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: "1.125rem",
+                    color: "#4B465C",
+                    mb: 0.5,
+                  }}
+                >
+                  Insurance Request Status
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#A8AAAE",
+                    fontSize: "0.9375rem",
+                  }}
+                >
+                  Request and track insurance certificate submission
+                </Typography>
+              </Box>
+              <RequestInsuranceButton
+                vendorId={vendor.id}
+                vendorName={vendor.name}
+                vendorEmail={vendor.email}
+                brokerEmail={vendor.brokerEmail}
+                brokerName={vendor.brokerName}
+                hasExistingRequest={vendor.certificateRequests.some(
+                  (req) => req.status === "pending" || req.status === "fulfilled"
+                )}
+              />
+            </Box>
+
+            <CardContent sx={{ px: 4, py: 3 }}>
+              {/* Current Status */}
+              {vendor.insuranceStatus && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      color: "#A8AAAE",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1.5,
+                    }}
+                  >
+                    Current Status
+                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    {vendor.insuranceStatus === "compliant" && (
+                      <>
+                        <CheckCircleIcon sx={{ color: "#28C76F", fontSize: 40 }} />
+                        <Box>
+                          <Typography
+                            sx={{
+                              color: "#28C76F",
+                              fontWeight: 600,
+                              fontSize: "1rem",
+                              mb: 0.5,
+                            }}
+                          >
+                            Certificate Compliant
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "#6D6B77", fontSize: "0.875rem" }}
+                          >
+                            Insurance certificate meets all requirements
+                            {vendor.insuranceComplianceAt &&
+                              ` as of ${formatDate(vendor.insuranceComplianceAt)}`}
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
+                    {vendor.insuranceStatus === "requested" && (
+                      <>
+                        <HourglassEmptyIcon sx={{ color: "#FF9F43", fontSize: 40 }} />
+                        <Box>
+                          <Typography
+                            sx={{
+                              color: "#FF9F43",
+                              fontWeight: 600,
+                              fontSize: "1rem",
+                              mb: 0.5,
+                            }}
+                          >
+                            Certificate Requested
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "#6D6B77", fontSize: "0.875rem" }}
+                          >
+                            Waiting for broker to upload certificate
+                            {vendor.insuranceRequestedAt &&
+                              ` (requested ${formatDate(vendor.insuranceRequestedAt)})`}
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
+                    {vendor.insuranceStatus === "non_compliant" && (
+                      <>
+                        <ErrorOutlineIcon sx={{ color: "#EA5455", fontSize: 40 }} />
+                        <Box>
+                          <Typography
+                            sx={{
+                              color: "#EA5455",
+                              fontWeight: 600,
+                              fontSize: "1rem",
+                              mb: 0.5,
+                            }}
+                          >
+                            Certificate Non-Compliant
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "#6D6B77", fontSize: "0.875rem" }}
+                          >
+                            Certificate does not meet all requirements
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Compliance Gaps */}
+              {vendor.insuranceStatus === "non_compliant" &&
+                vendor.certificateRequests.length > 0 &&
+                vendor.certificateRequests[0].complianceResult && (
+                  <Box sx={{ mb: 3 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        color: "#A8AAAE",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        mb: 1.5,
+                      }}
+                    >
+                      Compliance Gaps
+                    </Typography>
+                    <Alert
+                      severity="error"
+                      sx={{
+                        bgcolor: "#FFF0F0",
+                        border: "1px solid rgba(234, 84, 85, 0.2)",
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: "#EA5455",
+                          mb: 1,
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        The following requirements are not met:
+                      </Typography>
+                      <Box
+                        component="ul"
+                        sx={{
+                          m: 0,
+                          pl: 2.5,
+                          color: "#6D6B77",
+                          fontSize: "0.875rem",
+                          "& li": { mb: 0.5 },
+                        }}
+                      >
+                        {(() => {
+                          const result = vendor.certificateRequests[0]
+                            .complianceResult as any;
+                          const gaps: string[] = [];
+
+                          if (
+                            result.coverageResults &&
+                            Array.isArray(result.coverageResults)
+                          ) {
+                            result.coverageResults.forEach((coverage: any) => {
+                              if (!coverage.found) {
+                                gaps.push(
+                                  `Missing required coverage: ${coverage.coverageType.replace(/_/g, " ")}`
+                                );
+                              } else if (!coverage.limitsPass && coverage.limitsGaps) {
+                                coverage.limitsGaps.forEach((gap: any) => {
+                                  gaps.push(
+                                    `${coverage.coverageType.replace(/_/g, " ")}: ${gap.limitName} is ${formatCurrency(gap.actual)} but requires ${formatCurrency(gap.required)}`
+                                  );
+                                });
+                              }
+                            });
+                          }
+
+                          return gaps.length > 0 ? (
+                            gaps.map((gap, idx) => <li key={idx}>{gap}</li>)
+                          ) : (
+                            <li>Compliance gaps not specified</li>
+                          );
+                        })()}
+                      </Box>
+                    </Alert>
+                  </Box>
+                )}
+
+              {/* Certificate Request Timeline */}
+              {vendor.certificateRequests.length > 0 && (
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      color: "#A8AAAE",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      mb: 1.5,
+                    }}
+                  >
+                    Request History
+                  </Typography>
+                  <Stack spacing={2}>
+                    {vendor.certificateRequests.map((request) => (
+                      <Box
+                        key={request.id}
+                        sx={{
+                          p: 2.5,
+                          bgcolor: "#FAFBFC",
+                          borderRadius: 2,
+                          border: "1px solid rgba(0, 0, 0, 0.06)",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            mb: 1.5,
+                          }}
+                        >
+                          <Box
+                            sx={{ display: "flex", alignItems: "center", gap: 1.5 }}
+                          >
+                            <Typography
+                              sx={{
+                                fontFamily: "monospace",
+                                fontSize: "0.875rem",
+                                color: "#7367F0",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {request.brokermaticRequestId || request.externalId}
+                            </Typography>
+                            <ComplianceBadge status={request.status} />
+                          </Box>
+                          {request.certificateUrl && (
+                            <Button
+                              href={request.certificateUrl}
+                              target="_blank"
+                              size="small"
+                              startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+                              sx={{
+                                color: "#7367F0",
+                                textTransform: "none",
+                                fontWeight: 600,
+                                fontSize: "0.875rem",
+                                "&:hover": {
+                                  bgcolor: "rgba(115, 103, 240, 0.08)",
+                                },
+                              }}
+                            >
+                              Download Certificate
+                            </Button>
+                          )}
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "#6D6B77", fontSize: "0.875rem", mb: 1 }}
+                        >
+                          {request.legalText}
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            gap: 2,
+                            flexWrap: "wrap",
+                            fontSize: "0.8125rem",
+                            color: "#A8AAAE",
+                          }}
+                        >
+                          <span>
+                            <strong>Created:</strong>{" "}
+                            {formatDate(request.createdAt)}
+                          </span>
+                          {request.uploadedAt && (
+                            <span>
+                              <strong>Uploaded:</strong>{" "}
+                              {formatDate(request.uploadedAt)}
+                            </span>
+                          )}
+                          {request.validatedAt && (
+                            <span>
+                              <strong>Validated:</strong>{" "}
+                              {formatDate(request.validatedAt)}
+                            </span>
+                          )}
+                        </Box>
+                        {request.coverageTypes &&
+                          Array.isArray(request.coverageTypes) && (
+                            <Box sx={{ mt: 1.5 }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "#A8AAAE",
+                                  fontWeight: 600,
+                                  fontSize: "0.75rem",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.05em",
+                                  mb: 0.5,
+                                  display: "block",
+                                }}
+                              >
+                                Required Coverages
+                              </Typography>
+                              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                                {(request.coverageTypes as string[]).map(
+                                  (coverage, idx) => (
+                                    <Chip
+                                      key={idx}
+                                      label={coverage.replace(/_/g, " ")}
+                                      size="small"
+                                      sx={{
+                                        bgcolor: "#E8E7FD",
+                                        color: "#7367F0",
+                                        fontSize: "0.75rem",
+                                        fontWeight: 500,
+                                        height: 24,
+                                      }}
+                                    />
+                                  )
+                                )}
+                              </Box>
+                            </Box>
+                          )}
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+
+              {/* No Requests Yet */}
+              {vendor.certificateRequests.length === 0 &&
+                !vendor.insuranceStatus && (
+                  <Box sx={{ textAlign: "center", py: 4 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#A8AAAE", fontSize: "0.9375rem" }}
+                    >
+                      No insurance certificate requests have been submitted yet.
+                      Click "Request Insurance" to begin.
+                    </Typography>
+                  </Box>
+                )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* ---- Insurance Requirements ---- */}
         <Card
           sx={{
@@ -497,59 +898,33 @@ export default async function VendorInsurancePage({
             sx={{
               px: 4,
               py: 3,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
               borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
             }}
           >
-            <Box>
-              <Typography
-                variant="h6"
-                component="h2"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: "1.125rem",
-                  color: "#4B465C",
-                  mb: 0.5,
-                }}
-              >
-                Insurance Certificates
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "#A8AAAE",
-                  fontSize: "0.9375rem",
-                }}
-              >
-                {vendor.certificates.length === 0
-                  ? "No certificates on file"
-                  : `${vendor.certificates.length} certificate${vendor.certificates.length !== 1 ? "s" : ""} on file`
-                }
-              </Typography>
-            </Box>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<UploadFileIcon sx={{ fontSize: 16 }} />}
+            <Typography
+              variant="h6"
+              component="h2"
               sx={{
-                bgcolor: "#7367F0",
-                color: "#FFFFFF",
                 fontWeight: 600,
-                fontSize: "0.875rem",
-                textTransform: "none",
-                px: 3,
-                py: 1,
-                boxShadow: "0 2px 4px 0 rgba(115, 103, 240, 0.24)",
-                "&:hover": {
-                  bgcolor: "#5E51E5",
-                  boxShadow: "0 4px 8px 0 rgba(115, 103, 240, 0.4)",
-                },
+                fontSize: "1.125rem",
+                color: "#4B465C",
+                mb: 0.5,
               }}
             >
-              Upload Certificate
-            </Button>
+              Insurance Certificates
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#A8AAAE",
+                fontSize: "0.9375rem",
+              }}
+            >
+              {vendor.certificates.length === 0
+                ? "Certificates will appear here once submitted and validated by Brokermatic"
+                : `${vendor.certificates.length} certificate${vendor.certificates.length !== 1 ? "s" : ""} on file`
+              }
+            </Typography>
           </Box>
 
           {vendor.certificates.length === 0 ? (
